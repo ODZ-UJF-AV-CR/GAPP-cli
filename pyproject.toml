@@ -1,7 +1,7 @@
 [project]
 name = "gapp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Command line module for GAPP"
 readme = "README.md"
 authors = [
     { name = "Vilém Raška" }
@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "argparse>=1.4.0",
+    "gpsdclient>=1.3.2",
 ]
 
 [project.scripts]
@@ -17,4 +18,3 @@ gapp = "gapp.cli:main"
 [build-system]
 requires = ["uv_build>=0.10.0,<0.11.0"]
 build-backend = "uv_build"
-
