@@ -1,6 +1,5 @@
 import multiprocessing
 import sys
-import time
 
 from gapp.config import get_config
 from gapp.gps import run_gps_logger

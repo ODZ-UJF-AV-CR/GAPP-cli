@@ -1,6 +1,5 @@
 import multiprocessing
 import sys
-import time
 from typing import Optional
 
 from gpsdclient.client import GPSDClient
