@@ -1,10 +1,17 @@
+import multiprocessing
 import sys
+import time
+from typing import Optional
+
 from gpsdclient.client import GPSDClient
 
 
-def run_gps_logger(host: str, port: int) -> None:
+def run_gps_logger(
+    host: str, port: int, queue: Optional[multiprocessing.Queue] = None
+) -> None:
     """
     Connects to GPSD and streams TPV data to stdout.
+    Optionally pushes data to a multiprocessing queue for telemetry upload.
     """
     print(f"Connecting to GPSD at {host}:{port}...")
 
@@ -12,11 +19,9 @@ def run_gps_logger(host: str, port: int) -> None:
         with GPSDClient(host=host, port=port) as client:
             for result in client.dict_stream(convert_datetime=True):
                 # Filter for TPV (Time Position Velocity) reports which contain lat/lon/time
-                if result.get("class") == "TPV":
-                    lat = result.get("lat", "N/A")
-                    lon = result.get("lon", "N/A")
-                    time_str = result.get("time", "N/A")
-                    print(f"Time: {time_str}, Lat: {lat}, Lon: {lon}")
+                if result.get("class") == "TPV" and queue is not None:
+                    queue.put({"source": "gpsd", "data": result})
+
     except ConnectionRefusedError:
         print(f"Error: Could not connect to GPSD at {host}:{port}", file=sys.stderr)
         sys.exit(1)
