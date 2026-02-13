@@ -5,15 +5,16 @@ from typing import Any, Dict
 
 import httpx
 
+
 def run_telemetry_uploader(
-    server_url: str, queue: multiprocessing.Queue, station_callsign: str
+    server_url: str, queue: multiprocessing.Queue, station_callsign: str, mavlink_callsign: str
 ) -> None:
     """
     Process that consumes telemetry data from the queue and uploads it to the server.
     """
     api_endpoint = f"{server_url}/api/telemetry"
 
-    print(f"Telemetry uploader started. Target: {api_endpoint}")
+    print(f"Telemetry uploader enabled - {api_endpoint}")
 
     with httpx.Client() as client:
         while True:
@@ -36,6 +37,17 @@ def run_telemetry_uploader(
                     payload["altitude"] = data.get("alt", 0.0)
                     payload["timestamp"] = data.get("time").isoformat()
 
+                if source == "mavlink":
+                    payload["callsign"] = mavlink_callsign
+                    payload["latitude"] = data.get("lat")
+                    payload["longitude"] = data.get("lon")
+                    payload["altitude"] = data.get("alt", 0.0)
+                    payload["timestamp"] = data.get("time").isoformat()
+                    # Add extra MAVLink fields
+                    for k, v in data.items():
+                        if k not in ["lat", "lon", "alt", "time"]:
+                            payload[k] = v
+
                 if not all(
                     k in payload and payload[k] is not None
                     for k in [
@@ -47,7 +59,10 @@ def run_telemetry_uploader(
                     ]
                 ):
                     # Skip invalid packets
-                    print(f"Skipping incomplete telemetry packet from {source}: {payload}", file=sys.stderr)
+                    print(
+                        f"Skipping incomplete telemetry packet from {source}: {payload}",
+                        file=sys.stderr,
+                    )
                     continue
 
                 # Upload

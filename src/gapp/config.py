@@ -16,7 +16,14 @@ DEFAULT_CONFIG = {
         "enabled": True,
         "host": "127.0.0.1",
         "port": 2947,
-        "interval": 15,  # Interval in seconds
+        "interval": 10,  # Interval in seconds
+    },
+    "mavlink": {
+        "callsign": "",
+        "enabled": True,
+        "connection_string": "udpin:0.0.0.0:14550",
+        "source_system": 1,
+        "source_component": 139,
     },
 }
 

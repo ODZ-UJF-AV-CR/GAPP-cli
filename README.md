@@ -30,11 +30,21 @@ You need toml config file:
 ```toml
 [uploader]
 enabled = true
-station_callsign = "test2"
-server_url = "http://localhost:3000"
+station_callsign = ""
+server_url = ""
 
 [gpsd]
 enabled = true
+host = "127.0.0.1"
+port = 2947
+interval = 10
+
+[mavlink]
+callsign = ""
+enabled = true
+connection_string = "udpin:0.0.0.0:14550"
+source_system = 1
+source_component = 139
 ```
 
 Start by:

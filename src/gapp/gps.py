@@ -2,7 +2,7 @@ import multiprocessing
 import sys
 import time
 from typing import Optional
-from gpsdclient import GPSDClient
+from gpsdclient.client import GPSDClient
 
 
 def run_gps_logger(
@@ -15,12 +15,10 @@ def run_gps_logger(
     Connects to GPSD and streams TPV data to stdout.
     Optionally pushes data to a multiprocessing queue for telemetry upload.
     """
-    print(f"Connecting to GPSD at {host}:{port}...")
+    print(f"GPSD enabled - {host}:{port}")
 
     try:
         with GPSDClient(host=host, port=port) as client:
-            print("Connected to GPSD.")
-
             last_log_time = 0.0
 
             for packet in client.dict_stream(filter=["TPV"]):
