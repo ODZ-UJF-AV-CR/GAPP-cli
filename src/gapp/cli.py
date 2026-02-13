@@ -3,24 +3,22 @@ import sys
 
 from gapp.config import get_config
 from gapp.gps import run_gps_logger
-from gapp.telemetry import run_telemetry_uploader
+from gapp.uploader import run_telemetry_uploader
 
 
 def main():
-    # Load configuration (merges defaults, config file, and CLI args)
     config = get_config()
 
     processes = []
 
-    # Create a shared queue for telemetry data
-    # We create it regardless, but only use it if telemetry is enabled
     telemetry_queue = multiprocessing.Queue()
 
-    # 1. Start Telemetry Uploader if server_url is configured
-    server_url = config.get("server_url")
-    station_callsign = config.get("station_callsign", "")
+    uploader_config = config.get("uploader", {})
+    uploader_enabled = uploader_config.get("enabled")
+    server_url = uploader_config.get("server_url")
+    station_callsign = uploader_config.get("station_callsign")
 
-    if server_url:
+    if uploader_enabled and server_url and station_callsign:
         print(f"Starting telemetry uploader to {server_url}")
         p_telemetry = multiprocessing.Process(
             target=run_telemetry_uploader,
@@ -29,22 +27,18 @@ def main():
         processes.append(p_telemetry)
         p_telemetry.start()
     else:
-        print("Telemetry upload disabled (no server_url configured)")
+        print("Telemetry upload disabled (no server_url, station_callsign configured or disabled in config)")
+        server_url = None
 
     # 2. Start GPSD Module if enabled
     gpsd_config = config.get("gpsd", {})
     if gpsd_config.get("enabled"):
-        host = gpsd_config.get("host", "127.0.0.1")
-        port = gpsd_config.get("port", 2947)
+        host = gpsd_config.get("host")
+        port = gpsd_config.get("port")
+        interval = gpsd_config.get("interval")
 
-        # Only pass the queue if telemetry is actually running (server_url is set)
-        queue_for_gps = telemetry_queue if server_url else None
-
-        print(
-            f"Starting GPSD logger (Queue: {'Enabled' if queue_for_gps else 'Disabled'})"
-        )
         p_gps = multiprocessing.Process(
-            target=run_gps_logger, args=(host, port, queue_for_gps)
+            target=run_gps_logger, args=(host, port, interval, telemetry_queue)
         )
         processes.append(p_gps)
         p_gps.start()

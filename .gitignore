@@ -1,4 +1,4 @@
-config.json
+config.toml
 .ruff_cache
 .venv
 dist

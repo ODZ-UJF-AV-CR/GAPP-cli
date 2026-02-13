@@ -11,19 +11,13 @@ def run_telemetry_uploader(
     """
     Process that consumes telemetry data from the queue and uploads it to the server.
     """
-    print(f"Telemetry uploader started. Target: {server_url}")
+    api_endpoint = f"{server_url}/api/telemetry"
 
-    # Ensure URL ends with /api/telemetry if not provided
-    # The user said "server_url" config, but implied it's the base URL or the full URL?
-    # Usually server_url is base. I'll robustly handle it.
-    api_endpoint = server_url.rstrip("/")
-    if not api_endpoint.endswith("/api/telemetry"):
-        api_endpoint += "/api/telemetry"
+    print(f"Telemetry uploader started. Target: {api_endpoint}")
 
     with httpx.Client() as client:
         while True:
             try:
-                # Get data from queue
                 item: Dict[str, Any] = queue.get()
 
                 # Check for stop signal (None)
@@ -33,21 +27,15 @@ def run_telemetry_uploader(
                 source = item.get("source", "unknown")
                 data = item.get("data", {})
 
-                # Normalize data based on source
                 payload = {}
 
                 if source == "gpsd":
-                    # Extract GPSD specific fields
-                    # GPSD TPV objects have lat, lon, alt, time (ISO8601)
                     payload["callsign"] = station_callsign
                     payload["latitude"] = data.get("lat")
                     payload["longitude"] = data.get("lon")
-                    payload["altitude"] = data.get(
-                        "alt", 0.0
-                    )  # Default to 0 if missing
+                    payload["altitude"] = data.get("alt", 0.0)
                     payload["timestamp"] = data.get("time").isoformat()
 
-                # Validate required fields
                 if not all(
                     k in payload and payload[k] is not None
                     for k in [

@@ -1,28 +1,33 @@
 import argparse
-import json
+import copy
 import os
 import sys
 from typing import Any, Dict
 
+import toml
+
 DEFAULT_CONFIG = {
-    "station_callsign": "",
-    "server_url": "",
+    "uploader": {
+        "enabled": True,
+        "station_callsign": "",
+        "server_url": "",
+    },
     "gpsd": {
-        "enabled": False,
+        "enabled": True,
         "host": "127.0.0.1",
         "port": 2947,
+        "interval": 15,  # Interval in seconds
     },
-    # Future nested configs for other modules (e.g., mavlink)
 }
 
 
 def _load_config_from_file(path: str) -> Dict[str, Any]:
-    """Load configuration from a JSON file."""
+    """Load configuration from a TOML file."""
     if not os.path.exists(path):
         return {}
 
     with open(path, "r") as f:
-        return json.load(f)
+        return toml.load(f)
 
 
 def _deep_update(base_dict: Dict[str, Any], update_dict: Dict[str, Any]) -> None:
@@ -43,17 +48,16 @@ def get_config() -> Dict[str, Any]:
     Parses CLI arguments (config file path only) and merges file config with defaults.
     Returns the final configuration dictionary.
     """
-    parser = argparse.ArgumentParser(description="GAPP CLI Application")
+    parser = argparse.ArgumentParser(
+        description="GAPP - cli utility to upload telemetry to gapp server"
+    )
 
-    # Configuration file argument (mandatory)
-    parser.add_argument("config_path", type=str, help="Path to JSON configuration file")
+    parser.add_argument("config_path", type=str, help="Path to TOML configuration file")
 
     args = parser.parse_args()
 
-    # 1. Start with defaults (deep copy to avoid modifying global default)
-    config = json.loads(json.dumps(DEFAULT_CONFIG))
+    config = copy.deepcopy(DEFAULT_CONFIG)
 
-    # 2. Load from config file
     if not os.path.exists(args.config_path):
         print(
             f"Error: Configuration file not found at '{args.config_path}'",
