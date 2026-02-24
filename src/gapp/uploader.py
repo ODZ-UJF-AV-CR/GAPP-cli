@@ -35,14 +35,14 @@ def run_telemetry_uploader(
                     payload["latitude"] = data.get("lat")
                     payload["longitude"] = data.get("lon")
                     payload["altitude"] = data.get("alt", 0.0)
-                    payload["timestamp"] = data.get("time").isoformat()
+                    payload["_time"] = data.get("time").isoformat()
 
                 if source == "mavlink":
                     payload["callsign"] = mavlink_callsign
                     payload["latitude"] = data.get("lat")
                     payload["longitude"] = data.get("lon")
                     payload["altitude"] = data.get("alt", 0.0)
-                    payload["timestamp"] = data.get("time").isoformat()
+                    payload["_time"] = data.get("time").isoformat()
                     # Add extra MAVLink fields
                     for k, v in data.items():
                         if k not in ["lat", "lon", "alt", "time"]:
@@ -55,7 +55,7 @@ def run_telemetry_uploader(
                         "latitude",
                         "longitude",
                         "altitude",
-                        "timestamp",
+                        "_time",
                     ]
                 ):
                     # Skip invalid packets
