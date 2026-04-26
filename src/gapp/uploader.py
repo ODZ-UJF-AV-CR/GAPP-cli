@@ -69,7 +69,7 @@ def run_telemetry_uploader(
                 try:
                     response = client.post(api_endpoint, json=payload, timeout=5.0)
                     response.raise_for_status()
-                    print(f"Uploaded telemetry: {payload['timestamp']}")
+                    print(f"Uploaded telemetry: {payload['_time']}")
                 except httpx.HTTPError as e:
                     print(e)
                     print(f"Failed to upload telemetry: {e}", file=sys.stderr)
