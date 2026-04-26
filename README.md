@@ -24,6 +24,19 @@ optional arguments:
   -h, --help   show this help message and exit
 ```
 
+## Running without `uv` (plain Python + pip)
+
+If you do not want to install `uv`, you can run the app directly with `python3` and install dependencies via `pip3`:
+
+1. Install dependencies:
+```shell
+pip3 install -r requirements.txt
+```
+2. Run from the repository root with `src` on `PYTHONPATH`:
+```shell
+PYTHONPATH=src python3 -m gapp.cli config.toml
+```
+
 ## Running
 
 You need toml config file:
