@@ -1,116 +1,43 @@
-# GAPP-cli Development Guide
+# GAPP-cli agent notes
 
-This repository contains the GAPP command-line interface for uploading station position and telemetry data.
-The project uses Python (>=3.9) and `uv` for dependency management and packaging.
+Python 3.9 CLI that uploads station GPS + MAVLink telemetry to a GAPP server.
+Managed with `uv`; build backend is `uv_build` (see `pyproject.toml`), not setuptools/hatch.
+`.python-version` pins 3.9; `pyproject.toml` sets `requires-python = ">=3.9"`.
 
-## 1. Build, Run, and Test Commands
+## Commands
 
-### Environment Setup
-- **Install Dependencies:**
-  ```bash
-  uv sync
-  ```
-- **Add Dependency:**
-  ```bash
-  uv add <package_name>
-  ```
+- Install deps:        `uv sync`
+- Add dep:             `uv add <pkg>`
+- Run from source:     `uv run gapp <config.toml>`
+- Run as module:       `python3 -m gapp.cli <config.toml>`
+- Install as tool:     `uv tool install .`  (then `gapp <config.toml>`)
+- Tests:               `uv run pytest`  — `tests/` exists but is empty; `pytest` is in the `dev` dep group.
 
-### Running the Application
-The application entry point is `gapp.cli:main`. It requires a configuration file argument.
-- **Run directly:**
-  ```bash
-  uv run gapp config.json
-  ```
-- **Run as module:**
-  ```bash
-  python3 -m gapp.cli config.json
-  ```
+The CLI argument is a **TOML** file (see README.md for a full sample). There is no JSON config path.
 
-### Testing
-Currently, there are no tests. When adding tests:
-- **Location:** Create a `tests/` directory at the project root.
-- **Framework:** Use `pytest`.
-- **Command:**
-  ```bash
-  uv run pytest
-  ```
-- **Run Single Test:**
-  ```bash
-  uv run pytest tests/test_file.py::test_function_name
-  ```
+No ruff/mypy config lives in the repo, and there are no CI workflows. Do not assume formatters, linters, or type checkers run automatically — running `ruff` or `mypy` will use defaults only.
 
-### Linting and Formatting
-The project does not enforce strict linting rules yet, but standard Python tools are recommended.
-- **Lint:**
-  ```bash
-  uv run ruff check .
-  ```
-- **Format:**
-  ```bash
-  uv run ruff format .
-  ```
-- **Type Check:**
-  ```bash
-  uv run mypy src/
-  ```
+## Architecture
 
----
+`cli.main` (src/gapp/cli.py:10) orchestrates up to three `multiprocessing.Process` workers sharing one `multiprocessing.Queue`:
 
-## 2. Code Style Guidelines
+- Consumer: `run_telemetry_uploader` (src/gapp/uploader.py) — POSTs to `{server_url}/api/telemetry` with `httpx`.
+- Producer: `run_gps_logger` (src/gapp/gps.py) — reads TPV packets from `gpsd`.
+- Producer: `run_mavlink_logger` (src/gapp/mavlink.py) — reads `GPS_RAW_INT` via `pymavlink`.
 
-### General Principles
-- **Clarity:** Code should be self-documenting where possible.
-- **Consistency:** Follow existing patterns in the codebase.
-- **Simplicity:** Prefer simple, readable solutions over complex ones.
+Queue protocol: producers push `{"source": "gpsd"|"mavlink", "data": {...}}`. Stop signal sent to the uploader is a single `None` enqueued from `cli.main` on `KeyboardInterrupt`.
 
-### Formatting & Structure
-- **Indentation:** Use 4 spaces.
-- **Line Length:** Aim for 88-100 characters (compatible with `black`/`ruff`).
-- **Imports:** Group imports in the following order:
-  1.  Standard Library (`import os`, `import sys`)
-  2.  Third-party Libraries (`from gpsdclient import ...`)
-  3.  Local Application Imports (`from gapp.config import ...`)
-  Use absolute imports for local modules (e.g., `from gapp.gps import ...` instead of `from .gps import ...`).
+Config: TOML only. Defaults live in `gapp.config.DEFAULT_CONFIG` (src/gapp/config.py:9) and are deep-merged with the user file via `_deep_update`. `config.toml` is gitignored; the sample in README.md is the source of truth for shape.
 
-### Naming Conventions
-- **Variables/Functions:** `snake_case` (e.g., `run_gps_logger`, `server_url`).
-- **Classes:** `PascalCase` (e.g., `GpsLogger`).
-- **Constants:** `UPPER_CASE` (e.g., `DEFAULT_CONFIG`).
-- **Private Members:** Prefix with underscore `_` (e.g., `_load_config_from_file`).
+## Conventions
 
-### Type Hinting
-- **Mandatory:** Use type hints for function arguments and return values.
-- **Imports:** Use `typing` module (e.g., `List`, `Dict`, `Optional`, `Any`) for compatibility with older Python versions if necessary, or standard collection types for Python 3.9+.
-- **Example:**
-  ```python
-  def get_data(source: str, timeout: int = 10) -> Dict[str, Any]:
-      ...
-  ```
+- Absolute imports rooted at `gapp.` only — every existing module follows this. Do not introduce relative imports.
+- Type hints expected on new code; existing code uses `typing.Dict/Optional/Any` for 3.9 compatibility — match that style rather than `dict[...]` / `X | None`.
+- `snake_case` for funcs/vars, `PascalCase` for classes, leading `_` for module-private helpers (e.g. `_load_config_from_file`, `_deep_update`).
+- Worker processes must exit cleanly on `KeyboardInterrupt`; fatal errors print to `sys.stderr` and call `sys.exit(1)` (pattern: src/gapp/gps.py:63-71).
+- 4-space indent; no enforced line length.
 
-### Error Handling
-- **Explicit Exceptions:** Catch specific exceptions (e.g., `ConnectionRefusedError`, `FileNotFoundError`) rather than bare `except:`.
-- **Graceful Exit:** For critical errors in CLI tools, print a clear message to `sys.stderr` and exit with a non-zero status code (`sys.exit(1)`).
-- **Cleanup:** Ensure resources (like subprocesses) are cleaned up properly, especially on `KeyboardInterrupt`.
+## Known issues to be aware of when editing
 
-### Documentation
-- **Docstrings:** Use docstrings for all public modules, classes, and functions.
-- **Style:** Google style is preferred (Description, Args, Returns, Raises).
-- **Example:**
-  ```python
-  def connect(host: str, port: int) -> None:
-      """
-      Connects to the server.
-
-      Args:
-          host: The server hostname.
-          port: The server port.
-
-      Raises:
-          ConnectionError: If connection fails.
-      """
-  ```
-
-### Concurrency
-- The application uses `multiprocessing` for concurrent modules (GPS logger, Telemetry uploader).
-- Ensure processes are properly terminated and joined on exit.
-- use `multiprocessing.Queue` for inter-process communication.
+- `src/gapp/uploader.py:72` references `payload['timestamp']` after a successful POST, but the payload only has `_time` (set at lines 38 and 45). This raises `KeyError` on every successful upload. Fix or work around if you touch this code path.
+- `src/gapp/cli.py:40-49` starts the GPSD worker whenever `gpsd.enabled` is true, regardless of whether the uploader is running. The MAVLink branch (cli.py:57) correctly gates the queue with `queue_for_mav = telemetry_queue if server_url else None`; the GPSD branch does not, so when the uploader is disabled the queue fills with no consumer. Mirror the MAVLink gating pattern when modifying.
