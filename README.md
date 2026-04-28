@@ -1,6 +1,6 @@
 # GAPP-cli
 
-This is command line app for uploading station position and telemetry to the [GAPP server](https://github.com/ODZ-UJF-AV-CR/GAPP)
+This is a command-line app for uploading station position and telemetry to the [GAPP server](https://github.com/ODZ-UJF-AV-CR/GAPP)
 
 ## Installing
 
@@ -8,7 +8,7 @@ This is command line app for uploading station position and telemetry to the [GA
 2. Clone this repository
 3. Install *GAPP*:
 ```shell
-uv tool install .
+python3 -m pip install .
 ```
 4. Now you can execute `gapp`:
 ```shell
