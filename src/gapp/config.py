@@ -22,6 +22,8 @@ DEFAULT_CONFIG = {
         "callsign": "",
         "enabled": True,
         "connection_string": "udpin:0.0.0.0:14550",
+        "baud": 115200,
+        "print_packets": False,
         "source_system": 1,
         "source_component": 139,
     },
@@ -59,6 +61,11 @@ def get_config() -> Dict[str, Any]:
         description="GAPP - cli utility to upload telemetry to gapp server"
     )
 
+    parser.add_argument(
+        "--print-mavlink-packets",
+        action="store_true",
+        help="Print incoming MAVLink packets to stdout",
+    )
     parser.add_argument("config_path", type=str, help="Path to TOML configuration file")
 
     args = parser.parse_args()
@@ -78,5 +85,7 @@ def get_config() -> Dict[str, Any]:
     except Exception as e:
         print(f"Error loading config file: {e}", file=sys.stderr)
         sys.exit(1)
+    if args.print_mavlink_packets:
+        config["mavlink"]["print_packets"] = True
 
     return config

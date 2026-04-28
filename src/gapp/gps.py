@@ -4,6 +4,8 @@ import time
 from typing import Optional
 from gpsdclient.client import GPSDClient
 
+from gapp import sounds
+
 
 def run_gps_logger(
     host: str,
@@ -15,7 +17,7 @@ def run_gps_logger(
     Connects to GPSD and streams TPV data to stdout.
     Optionally pushes data to a multiprocessing queue for telemetry upload.
     """
-    print(f"GPSD enabled - {host}:{port}")
+    print(f"GPSD enabled - {host}:{port}", flush=True)
 
     try:
         with GPSDClient(host=host, port=port) as client:
@@ -43,8 +45,11 @@ def run_gps_logger(
                         alt = packet.get("alt", 0.0) if mode >= 3 else 0.0
 
                         print(
-                            f"GPS Fix: Lat={lat}, Lon={lon}, Alt={alt}, Time={time_utc}"
+                            f"GPS Fix: Lat={lat}, Lon={lon}, Alt={alt}, Time={time_utc}",
+                            flush=True,
                         )
+
+                        sounds.play("position")
 
                         if queue:
                             data = {
@@ -55,7 +60,7 @@ def run_gps_logger(
                             }
                             queue.put({"source": "gpsd", "data": data})
                     else:
-                        print("GPS: No fix")
+                        print("GPS: No fix", flush=True)
 
                 except Exception as e:
                     print(f"Error processing GPS packet: {e}", file=sys.stderr)
@@ -64,7 +69,7 @@ def run_gps_logger(
         print(f"Error: Could not connect to GPSD at {host}:{port}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nStopping GPSD logging.")
+        print("\nStopping GPSD logging.", flush=True)
         sys.exit(0)
     except Exception as e:
         print(f"An error occurred: {e}", file=sys.stderr)

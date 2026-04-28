@@ -53,12 +53,21 @@ def main():
         connection_string = mavlink_config.get("connection_string")
         source_system = mavlink_config.get("source_system")
         source_component = mavlink_config.get("source_component")
+        baud = mavlink_config.get("baud")
+        print_packets = mavlink_config.get("print_packets")
 
         queue_for_mav = telemetry_queue if server_url else None
 
         p_mav = multiprocessing.Process(
             target=run_mavlink_logger,
-            args=(connection_string, source_system, source_component, queue_for_mav),
+            args=(
+                connection_string,
+                source_system,
+                source_component,
+                queue_for_mav,
+                baud,
+                print_packets,
+            ),
         )
         processes.append(p_mav)
         p_mav.start()

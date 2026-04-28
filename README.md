@@ -13,7 +13,7 @@ uv tool install .
 4. Now you can execute `gapp`:
 ```shell
 $ gapp -h
-usage: gapp [-h] config_path
+usage: gapp [-h] [--print-mavlink-packets] config_path
 
 GAPP CLI Application
 
@@ -21,6 +21,8 @@ positional arguments:
   config_path  Path to TOML configuration file
 
 optional arguments:
+  --print-mavlink-packets
+              Print incoming MAVLink packets to stdout
   -h, --help   show this help message and exit
 ```
 
@@ -43,6 +45,7 @@ interval = 10
 callsign = ""
 enabled = true
 connection_string = "udpin:0.0.0.0:14550"
+print_packets = false
 source_system = 1
 source_component = 139
 ```
